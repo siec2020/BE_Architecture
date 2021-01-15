@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #define SQUARE_SIDE_SIZE 100
+#define WALL_PERCENTAGE 0.1
  
 class point {
 public:
@@ -16,12 +17,15 @@ public:
 class map {
 public:
     map() {
-        int 
-        w = h = SQUARE_SIDE_SIZE; //JE SUIS LAAAAAAAAAA
+        int current_random_value;
+
+        w = h = SQUARE_SIDE_SIZE;
         for( int r = 0; r < h; r++ )
             for( int s = 0; s < w; s++ )
-                m[s][r] = if ;
+                current_random_value = std::rand()/RAND_MAX;
+                m[s][r] = current_random_value < WALL_PERCENTAGE ? 1 : 0;
     }
+
     int operator() ( int x, int y ) { return m[x][y]; }
     char m[SQUARE_SIDE_SIZE][SQUARE_SIDE_SIZE];
     int w, h;
@@ -149,9 +153,9 @@ int main( int argc, char* argv[] ) {
     if( as.search( s, e, m ) ) {
         std::list<point> path;
         int c = as.path( path );
-        for( int y = -1; y < 9; y++ ) {
+        for( int y = -1; y < SQUARE_SIDE_SIZE+1; y++ ) {
             for( int x = -1; x < 9; x++ ) {
-                if( x < 0 || y < 0 || x > 7 || y > 7 || m( x, y ) == 1 )
+                if( x < 0 || y < 0 || x > SQUARE_SIDE_SIZE || y > SQUARE_SIDE_SIZE || m( x, y ) == 1 )
                     std::cout << char(0xdb);
                 else {
                     if( std::find( path.begin(), path.end(), point( x, y ) )!= path.end() )
