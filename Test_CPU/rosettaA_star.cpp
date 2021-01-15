@@ -1,6 +1,9 @@
 #include <list>
 #include <algorithm>
 #include <iostream>
+#include <cstdlib>
+
+#define SQUARE_SIDE_SIZE 100
  
 class point {
 public:
@@ -13,19 +16,14 @@ public:
 class map {
 public:
     map() {
-        char t[8][8] = {
-            {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0},
-            {0, 0, 0, 0, 1, 1, 1, 0}, {0, 0, 1, 0, 0, 0, 1, 0},
-            {0, 0, 1, 0, 0, 0, 1, 0}, {0, 0, 1, 1, 1, 1, 1, 0},
-            {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}
-        };
-        w = h = 8;
+        int 
+        w = h = SQUARE_SIDE_SIZE; //JE SUIS LAAAAAAAAAA
         for( int r = 0; r < h; r++ )
             for( int s = 0; s < w; s++ )
-                m[s][r] = t[r][s];
+                m[s][r] = if ;
     }
     int operator() ( int x, int y ) { return m[x][y]; }
-    char m[8][8];
+    char m[SQUARE_SIDE_SIZE][SQUARE_SIDE_SIZE];
     int w, h;
 };
  
@@ -81,7 +79,7 @@ public:
         for( int x = 0; x < 8; x++ ) {
             // one can make diagonals have different cost
             stepCost = x < 4 ? 1 : 1; //The variable neigbours has the direct neighbours from index 0 to 3 and the diagonal neighbours from index 4 to 7
-            neighbour = n.pos + neighbours[x]; //The variable neighbours contains the relative move from the current position to find the neighbours
+            neighbour = n.pos + neighbours[x]; //The variable neighbours contains the relative moves from the current position to find the neighbours
             if( neighbour == end ) return true;
  
             if( isValid( neighbour ) && m( neighbour.x, neighbour.y ) != 1 ) { //Here we inspect the new position if the position is in the map and the position isn't a wall
@@ -118,13 +116,16 @@ public:
         return false;
     }
  
+    /*
+    Recreate the path from the closed list containing all the nodes that leads to the solution
+    */
     int path( std::list<point>& path ) {
-        path.push_front( end );
-        int cost = 1 + closed.back().cost; 
+        path.push_front( end ); //We last nodes first so at the end, the path list will be in the right order
+        int cost = 1 + closed.back().cost; //We consider the last move to the end to cost 1 ????
         path.push_front( closed.back().pos );
         point parent = closed.back().parent;
  
-        for( std::list<node>::reverse_iterator i = closed.rbegin(); i != closed.rend(); i++ ) {
+        for( std::list<node>::reverse_iterator i = closed.rbegin(); i != closed.rend(); i++ ) { //We go through the entire close node list till we reach the start point
             if( ( *i ).pos == parent && !( ( *i ).pos == start ) ) {
                 path.push_front( ( *i ).pos );
                 parent = ( *i ).parent;
@@ -142,7 +143,7 @@ public:
  
 int main( int argc, char* argv[] ) {
     map m;
-    point s, e( 7, 7 );
+    point s, e( SQUARE_SIDE_SIZE, SQUARE_SIDE_SIZE ); //s is the start e is the end
     aStar as;
  
     if( as.search( s, e, m ) ) {
