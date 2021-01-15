@@ -57,6 +57,7 @@ public:
         return ( p.x >-1 && p.y > -1 && p.x < m.w && p.y < m.h );
     }
  
+ //If we don't find a node with a cheaper path to the same point then we erase the old one and we return true else we return false and we forget the new path
     bool existPoint( point& p, int cost ) {
         std::list<node>::iterator i;
         i = std::find( closed.begin(), closed.end(), p );
@@ -75,17 +76,18 @@ public:
     bool fillOpen( node& n ) {
         int stepCost, nc, dist;
         point neighbour;
- 
+
+        //We investigate all neighbours
         for( int x = 0; x < 8; x++ ) {
             // one can make diagonals have different cost
-            stepCost = x < 4 ? 1 : 1;
-            neighbour = n.pos + neighbours[x];
+            stepCost = x < 4 ? 1 : 1; //The variable neigbours has the direct neighbours from index 0 to 3 and the diagonal neighbours from index 4 to 7
+            neighbour = n.pos + neighbours[x]; //The variable neighbours contains the relative move from the current position to find the neighbours
             if( neighbour == end ) return true;
  
-            if( isValid( neighbour ) && m( neighbour.x, neighbour.y ) != 1 ) {
+            if( isValid( neighbour ) && m( neighbour.x, neighbour.y ) != 1 ) { //Here we inspect the new position if the position is in the map and the position isn't a wall
                 nc = stepCost + n.cost;
                 dist = calcDist( neighbour );
-                if( !existPoint( neighbour, nc + dist ) ) {
+                if( !existPoint( neighbour, nc + dist ) ) { //If we don't have any path to the same point in open or closed where the cost is cheaper, we create a new node in open
                     node m;
                     m.cost = nc; m.dist = dist;
                     m.pos = neighbour; 
@@ -97,16 +99,21 @@ public:
         return false;
     }
  
+    /*
+    You specify a beginning point, an end point, and a map where you want to find the cheapest way.
+    It initializes all attributes from the object astar to keep these data in mind.
+    We create the first node with parent 0 and current_pos the first position with a cost of zero.
+    */
     bool search( point& s, point& e, map& mp ) {
         node n; end = e; start = s; m = mp;
         n.cost = 0; n.pos = s; n.parent = 0; n.dist = calcDist( s ); 
         open.push_back( n );
-        while( !open.empty() ) {
+        while( !open.empty() ) { //Search stops when all nodes are closed, it means all ways have been inverstigated
             //open.sort();
-            node n = open.front();
-            open.pop_front();
-            closed.push_back( n );
-            if( fillOpen( n ) ) return true;
+            node n = open.front(); //FIFO research
+            open.pop_front(); //As we investigated the node, we can consider it closed (i.e. investigated)
+            closed.push_back( n ); //So we fill the node in closed to keep it in memory
+            if( fillOpen( n ) ) return true; //
         }
         return false;
     }
