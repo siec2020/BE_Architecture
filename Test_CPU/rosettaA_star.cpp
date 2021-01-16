@@ -4,11 +4,11 @@
 #include <cstdlib>
 
 #define SQUARE_SIDE_SIZE 8
-#define WALL_PERCENTAGE 0. //Better not go over 0.4
-#define x_start 0
-#define y_start 0
-#define x_end SQUARE_SIDE_SIZE-1
-#define y_end SQUARE_SIDE_SIZE-1
+#define WALL_PERCENTAGE 0.2         //To avoid no solution, max = 0.4
+#define x_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
+#define y_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
+#define x_end 3                     //min= 0, max = SQUARE_SIDE_SIZE-1
+#define y_end 8                     //min= 0, max = SQUARE_SIDE_SIZE-1
  
 class point {
 public:
