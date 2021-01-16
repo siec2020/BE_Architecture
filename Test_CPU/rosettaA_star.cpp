@@ -3,8 +3,12 @@
 #include <iostream>
 #include <cstdlib>
 
-#define SQUARE_SIDE_SIZE 100
-#define WALL_PERCENTAGE 0.1
+#define SQUARE_SIDE_SIZE 8
+#define WALL_PERCENTAGE 0. //Better not go over 0.4
+#define x_start 0
+#define y_start 0
+#define x_end SQUARE_SIDE_SIZE-1
+#define y_end SQUARE_SIDE_SIZE-1
  
 class point {
 public:
@@ -17,17 +21,24 @@ public:
 class map {
 public:
     map() {
-        int current_random_value;
+        float current_random_value;
 
         w = h = SQUARE_SIDE_SIZE;
         for( int r = 0; r < h; r++ )
-            for( int s = 0; s < w; s++ )
-                current_random_value = std::rand()/RAND_MAX;
-                m[s][r] = current_random_value < WALL_PERCENTAGE ? 1 : 0;
+            for( int s = 0; s < w; s++ ){
+                if( !( (s ==x_start  && r == y_start) || (s == x_end && r == y_end) )){
+                    current_random_value = std::rand()/(float)RAND_MAX;
+                    m[s][r] = current_random_value < WALL_PERCENTAGE ? 1 : 0;
+                }
+                else m[s][r] = 0;
+                
+                // std::cout << "m[" << s << "][" << r <<"] = " << m[s][r] << std::endl;
+            }
+            // std::cout << std::endl;
     }
 
     int operator() ( int x, int y ) { return m[x][y]; }
-    char m[SQUARE_SIDE_SIZE][SQUARE_SIDE_SIZE];
+    int m[SQUARE_SIDE_SIZE][SQUARE_SIDE_SIZE];
     int w, h;
 };
  
@@ -147,16 +158,16 @@ public:
  
 int main( int argc, char* argv[] ) {
     map m;
-    point s, e( SQUARE_SIDE_SIZE, SQUARE_SIDE_SIZE ); //s is the start e is the end
+    point s, e(x_end,y_end); //s is the start e is the end
     aStar as;
  
     if( as.search( s, e, m ) ) {
         std::list<point> path;
         int c = as.path( path );
         for( int y = -1; y < SQUARE_SIDE_SIZE+1; y++ ) {
-            for( int x = -1; x < 9; x++ ) {
-                if( x < 0 || y < 0 || x > SQUARE_SIDE_SIZE || y > SQUARE_SIDE_SIZE || m( x, y ) == 1 )
-                    std::cout << char(0xdb);
+            for( int x = -1; x < SQUARE_SIDE_SIZE+1; x++ ) {
+                if( x < 0 || y < 0 || x > SQUARE_SIDE_SIZE-1 || y > SQUARE_SIDE_SIZE-1 || m( x, y ) == 1 )
+                    std::cout << "w";
                 else {
                     if( std::find( path.begin(), path.end(), point( x, y ) )!= path.end() )
                         std::cout << "x";
