@@ -9,7 +9,7 @@
 * **_GPU\_Final folder:_** contains our final version for the * *A\** algorithm implementation on CPU + GPU.
 
 
-## How to compile and execute source file:
+## How to compile and execute source files:
 
 * **_CPU_Final/rosettaA_star.cpp file:_** from this folder
 ```
