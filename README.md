@@ -5,8 +5,8 @@
 ## Repository organization:
 
 * **_Test\_CPU folder:_** contains several cpp files which corresponds to different implementation of the * *A\** algorithm on CPU. Only the *rosetta_A_star.cpp* is fully functionnal.
-* **_CPU\_Finalfolder:_** contains our final version for the * *A\** algorithm implementation on CPU.
-* **_GPU\_Final folder:_** contains our final version for the * *A\** algorithm implementation on CPU + GPU.
+* **_CPU\_Finalfolder:_** contains our final version for the *A\** algorithm implementation on CPU.
+* **_GPU\_Final folder:_** contains our final version for the *A\** algorithm implementation on CPU + GPU.
 
 
 ## How to compile and execute source files:
