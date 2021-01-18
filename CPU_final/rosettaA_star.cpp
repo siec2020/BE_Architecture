@@ -7,12 +7,12 @@
 using namespace std; 
 using namespace std::chrono;
 
-#define SQUARE_SIDE_SIZE 8
+#define SQUARE_SIDE_SIZE 30
 #define WALL_PERCENTAGE 0.2         //To avoid no solution, max = 0.4
 #define x_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
 #define y_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
-#define x_end 3                     //min= 0, max = SQUARE_SIDE_SIZE-1
-#define y_end 8                     //min= 0, max = SQUARE_SIDE_SIZE-1
+#define x_end 25                    //min= 0, max = SQUARE_SIDE_SIZE-1
+#define y_end 25                    //min= 0, max = SQUARE_SIDE_SIZE-1
  
 class point {
 public:
@@ -162,7 +162,7 @@ public:
  
 int main( int argc, char* argv[] ) {
     map m;
-    point s, e(x_end,y_end); //s is the start e is the end
+    point s(x_start,y_start), e(x_end,y_end); //s is the start e is the end
     aStar as;
 
     //Start point to measure executions time
