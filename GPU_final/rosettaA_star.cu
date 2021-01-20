@@ -170,8 +170,7 @@ public:
         bool* host_found;
         bool* dev_found;
 
-        thrust::device_vector<node> dev_open(open.begin(), open.end());
-        thrust::device_vector<node> dev_close(open.begin(), open.end());
+
 
 
 
@@ -200,8 +199,18 @@ public:
             //Declare the bool result in the GPU that is needed for our stop condition
             cudaMalloc( (void**)&dev_found, sizeof(bool) )
 
-            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, dev_open, dev_close)
+            //create device vector 
+            thrust::device_vector<node> dev_open(open.begin(), open.end());
+            thrust::device_vector<node> dev_close(open.begin(), open.end());
 
+            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, dev_open, dev_close)
+            
+            //free the device vector
+            dev_open.clear();
+            device_vector<T>().swap(dev_open);
+            dev_close.clear();
+            device_vector<T>().swap(dev_close);
+        
             cudaMemcpy( host_found, dev_found, sizeof(bool), cudaMemcpyDeviceToHost );
             if( *host_found ){
                 //Free GPU's memory
