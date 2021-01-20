@@ -156,6 +156,25 @@ public:
     We create the first node with parent 0 and current_pos the first position with a cost of zero.
     */
     bool search( point& s, point& e, map& mp ) {
+
+        //Allocate memory in the GPU
+        point* dev_neighbours;
+        point* dev_end;
+        node* dev_n;
+        int* dev_map;
+
+        bool* host_found;
+        bool* dev_found;
+
+        cudaMalloc( (void**)&dev_neighbours, 8*sizeof(point) ) //Declare the neighbours variable for the GPU
+        cudaMalloc( (void**)&dev_end, sizeof(point) ) //Declare the end point for the GPU
+        cudaMalloc( (void**)&dev_map, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(point) ) //Declare the end point for the GPU
+
+        //Copy values in the GPU's memory
+        cudaMemcpy( dev_end, e, sizeof(point), cudaMemcpyHostToDevice );
+        cudaMemcpy( dev_neighbours, neighbours, 8*sizeof(point), cudaMemcpyHostToDevice );
+        cudaMemcpy( dev_map, mp.m, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(int), cudaMemcpyHostToDevice );
+
         node n; end = e; start = s; m = mp;
         n.cost = 0; n.pos = s; n.parent = 0; n.dist = calcDist( s ); 
         open.push_back( n );
@@ -164,8 +183,31 @@ public:
             node n = open.front(); //FIFO research
             open.pop_front(); //As we investigated the node, we can consider it closed (i.e. investigated)
             closed.push_back( n ); //So we fill the node in closed to keep it in memory
-            if( fillOpen( node* n, point* dev_neighbours, map* dev_map, bool* found, list<node> dev_open ) ) return true; //
+            
+            //Declare the current node that will be processed by the GPU
+            cudaMalloc( (void**)&dev_n, sizeof(node) )
+            cudaMemcpy( dev_n, n, sizeof(point), cudaMemcpyHostToDevice );
+
+            //Declare the bool result in the GPU that is needed for our stop condition
+            cudaMalloc( (void**)&dev_found, sizeof(bool) )
+
+            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, bool* found, list<node> dev_open )
+            if(  ){
+                //Free GPU's memory
+                cudaFree(dev_bool);
+                cudaFree(dev_n);
+                cudaFree(dev_end);
+                cudaFree(dev_neighbours);
+                cudaFree(dev_map);
+                return true;
+             }
+             cudaFree(dev_n);
         }
+        //Free GPU's memory
+        cudaFree(dev_bool);
+        cudaFree(dev_end);
+        cudaFree(dev_neighbours);
+        cudaFree(dev_map);
         return false;
     }
  
@@ -201,11 +243,6 @@ int main( int argc, char* argv[] ) {
 
     //Start point to measure executions time
     auto start = high_resolution_clock::now();
-
-    point* dev_neighbours;
-    point* dev_n;
-
-    cudaMalloc( (void**) )
 
     if( as.search( s, e, m ) ) {
         list<point> path;
