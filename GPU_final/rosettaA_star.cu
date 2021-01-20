@@ -21,6 +21,24 @@ using namespace std::chrono;
 #define x_end 3                     //min= 0, max = SQUARE_SIDE_SIZE-1
 #define y_end 8                     //min= 0, max = SQUARE_SIDE_SIZE-1
  
+
+template <typename T>
+struct KernelArray
+{
+    T*  _array;
+    int _size;
+};
+
+template <typename T>
+KernelArray<T> convertToKernel(thrust::device_vector<T>& dVec)
+{
+    KernelArray<T> kArray;
+    kArray._array = thrust::raw_pointer_cast(&dVec[0]);
+    kArray._size  = (int) dVec.size();
+
+    return kArray;
+}
+
 class point {
 public:
     point( int a = 0, int b = 0 ) { x = a; y = b; }
@@ -110,7 +128,7 @@ public:
     }
 
     __global__
-    void fillOpen(node* n, point* dev_neighbours, map* dev_map, bool* found, list<node> dev_open, list<node> dev_closed) {
+    void fillOpen(node* n, point* dev_neighbours, map* dev_map, bool* found, thrust::device_vector<node> dev_open, thrust::device_vector<node> dev_close) {
         int stepCost, nc, dist;
         point neighbour;
 
@@ -152,6 +170,11 @@ public:
         bool* host_found;
         bool* dev_found;
 
+        thrust::device_vector<node> dev_open(open.begin(), open.end());
+        thrust::device_vector<node> dev_close(open.begin(), open.end());
+
+
+
         cudaMalloc( (void**)&dev_neighbours, 8*sizeof(point) ) //Declare the neighbours variable for the GPU
         cudaMalloc( (void**)&dev_end, sizeof(point) ) //Declare the end point for the GPU
         cudaMalloc( (void**)&dev_map, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(point) ) //Declare the end point for the GPU
@@ -177,7 +200,7 @@ public:
             //Declare the bool result in the GPU that is needed for our stop condition
             cudaMalloc( (void**)&dev_found, sizeof(bool) )
 
-            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, list<node> dev_open )
+            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, dev_open, dev_close)
 
             cudaMemcpy( host_found, dev_found, sizeof(bool), cudaMemcpyDeviceToHost );
             if( *host_found ){
@@ -223,8 +246,10 @@ public:
     point neighbours[8];
     list<node> open;
     list<node> closed;
+
 };
  
+
 int main( int argc, char* argv[] ) {
     map m;
     point s(x_start,y_start), e(x_end,y_end); //s is the start e is the end
