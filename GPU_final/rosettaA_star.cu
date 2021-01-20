@@ -110,7 +110,7 @@ public:
     }
 
     __global__
-    void fillOpen(node* n, point* dev_neighbours, map* dev_map, bool* found, list<node> dev_open) {
+    void fillOpen(node* n, point* dev_neighbours, map* dev_map, bool* found, list<node> dev_open, list<node> dev_closed) {
         int stepCost, nc, dist;
         point neighbour;
 
@@ -125,7 +125,7 @@ public:
         if( isValid( neighbour ) && dev_map( neighbour.x, neighbour.y ) != 1 ) { //Here we inspect the new position if the position is in the map and the position isn't a wall
             nc = stepCost + n.cost;
             dist = calcDist( neighbour );
-            if( !existPoint( neighbour, nc + dist ) ) { //If we don't have any path to the same point in open or closed where the cost is cheaper, we create a new node in open
+            if( !existPoint( neighbour, nc + dist , dev_open, dev_closed) ) { //If we don't have any path to the same point in open or closed where the cost is cheaper, we create a new node in open
                 node m;
                 m.cost = nc; m.dist = dist;
                 m.pos = neighbour; 
@@ -134,20 +134,6 @@ public:
                 }
         }
         found = false;
-    }
-
-    __global__ 
-    void kernel_modif( unsigned char *ptr ){
-        int x = threadIdx.x + blockIdx.x*blockDim.x;
-        int y = threadIdx.y + blockIdx.y*blockDim.y;
-
-        if (x < DIM && y < DIM){
-            int Offset = y*DIM + x;
-            int juliaValue = julia(x,y);
-            ptr[Offset*3 + 0] = 255 * juliaValue;
-            ptr[Offset*3 + 1] = 0;
-            ptr[Offset*3 + 2] = 0;
-        }
     }
  
     /*
@@ -191,8 +177,10 @@ public:
             //Declare the bool result in the GPU that is needed for our stop condition
             cudaMalloc( (void**)&dev_found, sizeof(bool) )
 
-            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, bool* found, list<node> dev_open )
-            if(  ){
+            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, list<node> dev_open )
+
+            cudaMemcpy( host_found, dev_found, sizeof(point), cudaMemcpyDeviceToHost );
+            if( *host_found ){
                 //Free GPU's memory
                 cudaFree(dev_bool);
                 cudaFree(dev_n);
@@ -202,6 +190,7 @@ public:
                 return true;
              }
              cudaFree(dev_n);
+             cudaFree(dev_bool);
         }
         //Free GPU's memory
         cudaFree(dev_bool);
