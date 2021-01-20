@@ -1,0 +1,241 @@
+#include <list>
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <chrono>
+
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+
+#include <thrust/copy.h>
+#include <thrust/fill.h>
+#include <thrust/sequence.h>
+
+using namespace std; 
+using namespace std::chrono;
+
+#define SQUARE_SIDE_SIZE 8
+#define WALL_PERCENTAGE 0.2         //To avoid no solution, max = 0.4
+#define x_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
+#define y_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
+#define x_end 3                     //min= 0, max = SQUARE_SIDE_SIZE-1
+#define y_end 8                     //min= 0, max = SQUARE_SIDE_SIZE-1
+ 
+class point {
+public:
+    point( int a = 0, int b = 0 ) { x = a; y = b; }
+    bool operator ==( const point& o ) { return o.x == x && o.y == y; }
+    point operator +( const point& o ) { return point( o.x + x, o.y + y ); }
+    int x, y;
+};
+ 
+class map {
+public:
+    map() {
+        float current_random_value;
+
+        w = h = SQUARE_SIDE_SIZE;
+        for( int r = 0; r < h; r++ )
+            for( int s = 0; s < w; s++ ){
+                if( !( (s ==x_start  && r == y_start) || (s == x_end && r == y_end) )){
+                    current_random_value = rand()/(float)RAND_MAX;
+                    m[s][r] = current_random_value < WALL_PERCENTAGE ? 1 : 0;
+                }
+                else m[s][r] = 0;
+                
+                // cout << "m[" << s << "][" << r <<"] = " << m[s][r] << endl;
+            }
+            // cout << endl;
+    }
+
+    int operator() ( int x, int y ) { return m[x][y]; }
+    int m[SQUARE_SIDE_SIZE][SQUARE_SIDE_SIZE];
+    int w, h;
+};
+ 
+class node {
+public:
+    bool operator == (const node& o ) { return pos == o.pos; }
+    bool operator == (const point& o ) { return pos == o; }
+    bool operator < (const node& o ) { return dist + cost < o.dist + o.cost; }
+    point pos, parent;
+    int dist, cost;
+};
+
+//Fonction called from the GPU and executed by the GPU
+__device__
+bool isValid( point& p ) {
+    return ( p.x >-1 && p.y > -1 && p.x < SQUARE_SIDE_SIZE && p.y < SQUARE_SIDE_SIZE );
+}
+
+__device__
+int dev_calcDist( point& p, point& dev_end){
+    // need a better heuristic
+    int x = dev_end.x - p.x, y = dev_end.y - p.y;
+    return( x * x + y * y );
+}
+
+ //If we don't find a node with a cheaper path to the same point then we erase the old one and we return true else we return false and we forget the new path
+ __device__
+ bool existPoint( point& p, int cost, list<node> dev_closed, list<node> dev_open) {
+    list<node>::iterator i;
+    i = find( dev_closed.begin(), dev_closed.end(), p );
+    if( i != dev_closed.end() ) {
+        if( ( *i ).cost + ( *i ).dist < cost ) return true;
+        else { dev_closed.erase( i ); return false; }
+    }
+    i = find( dev_open.begin(), dev_open.end(), p );
+    if( i != dev_open.end() ) {
+        if( ( *i ).cost + ( *i ).dist < cost ) return true;
+        else { dev_open.erase( i ); return false; }
+    }
+    return false;
+}
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+
+class aStar {
+public:
+    aStar() {
+        neighbours[0] = point( -1, -1 ); neighbours[1] = point(  1, -1 );
+        neighbours[2] = point( -1,  1 ); neighbours[3] = point(  1,  1 );
+        neighbours[4] = point(  0, -1 ); neighbours[5] = point( -1,  0 );
+        neighbours[6] = point(  0,  1 ); neighbours[7] = point(  1,  0 );
+    }
+ 
+    int calcDist( point& p ){
+        // need a better heuristic
+        int x = end.x - p.x, y = end.y - p.y;
+        return( x * x + y * y );
+    }
+
+    __global__
+    void fillOpen(node* n, point* dev_neighbours, map* dev_map, bool* found, list<node> dev_open) {
+        int stepCost, nc, dist;
+        point neighbour;
+
+        int i = threadIdx.x + blockIdx.x * blockDIm.x;
+
+        //We investigate all neighbours
+        // one can make diagonals have different cost
+        stepCost = i < 4 ? 1 : 1; //The variable neigbours has the direct neighbours from index 0 to 3 and the diagonal neighbours from index 4 to 7
+        neighbour = n.pos + dev_neighbours[i]; //The variable neighbours contains the relative moves from the current position to find the neighbours
+        if( neighbour == end ) found = true;
+
+        if( isValid( neighbour ) && dev_map( neighbour.x, neighbour.y ) != 1 ) { //Here we inspect the new position if the position is in the map and the position isn't a wall
+            nc = stepCost + n.cost;
+            dist = calcDist( neighbour );
+            if( !existPoint( neighbour, nc + dist ) ) { //If we don't have any path to the same point in open or closed where the cost is cheaper, we create a new node in open
+                node m;
+                m.cost = nc; m.dist = dist;
+                m.pos = neighbour; 
+                m.parent = n.pos;
+                dev_open.push_back( m );
+                }
+        }
+        found = false;
+    }
+
+    __global__ 
+    void kernel_modif( unsigned char *ptr ){
+        int x = threadIdx.x + blockIdx.x*blockDim.x;
+        int y = threadIdx.y + blockIdx.y*blockDim.y;
+
+        if (x < DIM && y < DIM){
+            int Offset = y*DIM + x;
+            int juliaValue = julia(x,y);
+            ptr[Offset*3 + 0] = 255 * juliaValue;
+            ptr[Offset*3 + 1] = 0;
+            ptr[Offset*3 + 2] = 0;
+        }
+    }
+ 
+    /*
+    You specify a beginning point, an end point, and a map where you want to find the cheapest way.
+    It initializes all attributes from the object astar to keep these data in mind.
+    We create the first node with parent 0 and current_pos the first position with a cost of zero.
+    */
+    bool search( point& s, point& e, map& mp ) {
+        node n; end = e; start = s; m = mp;
+        n.cost = 0; n.pos = s; n.parent = 0; n.dist = calcDist( s ); 
+        open.push_back( n );
+        while( !open.empty() ) { //Search stops when all nodes are closed, it means all ways have been inverstigated
+            //open.sort();
+            node n = open.front(); //FIFO research
+            open.pop_front(); //As we investigated the node, we can consider it closed (i.e. investigated)
+            closed.push_back( n ); //So we fill the node in closed to keep it in memory
+            if( fillOpen( node* n, point* dev_neighbours, map* dev_map, bool* found, list<node> dev_open ) ) return true; //
+        }
+        return false;
+    }
+ 
+    /*
+    Recreate the path from the closed list containing all the nodes that leads to the solution
+    */
+    int path( list<point>& path ) {
+        path.push_front( end ); //We last nodes first so at the end, the path list will be in the right order
+        int cost = 1 + closed.back().cost; //We consider the last move to the end to cost 1 ????
+        path.push_front( closed.back().pos );
+        point parent = closed.back().parent;
+ 
+        for( list<node>::reverse_iterator i = closed.rbegin(); i != closed.rend(); i++ ) { //We go through the entire close node list till we reach the start point
+            if( ( *i ).pos == parent && !( ( *i ).pos == start ) ) {
+                path.push_front( ( *i ).pos );
+                parent = ( *i ).parent;
+            }
+        }
+        path.push_front( start );
+        return cost;
+    }
+ 
+    map m; point end, start;
+    point neighbours[8];
+    list<node> open;
+    list<node> closed;
+};
+ 
+int main( int argc, char* argv[] ) {
+    map m;
+    point s(x_start,y_start), e(x_end,y_end); //s is the start e is the end
+    aStar as;
+
+    //Start point to measure executions time
+    auto start = high_resolution_clock::now();
+
+    point* dev_neighbours;
+    point* dev_n;
+
+    cudaMalloc( (void**) )
+
+    if( as.search( s, e, m ) ) {
+        list<point> path;
+        int c = as.path( path );
+        for( int y = -1; y < SQUARE_SIDE_SIZE+1; y++ ) {
+            for( int x = -1; x < SQUARE_SIDE_SIZE+1; x++ ) {
+                if( x < 0 || y < 0 || x > SQUARE_SIDE_SIZE-1 || y > SQUARE_SIDE_SIZE-1 || m( x, y ) == 1 )
+                    cout << "w";
+                else {
+                    if( find( path.begin(), path.end(), point( x, y ) )!= path.end() )
+                        cout << "x";
+                    else cout << ".";
+                }
+            }
+            cout << "\n";
+        }
+ 
+        cout << "\nPath cost " << c << ": ";
+        for( list<point>::iterator i = path.begin(); i != path.end(); i++ ) {
+            cout<< "(" << ( *i ).x << ", " << ( *i ).y << ") ";
+        }
+    }
+    cout << "\n\n";
+
+    // Stop point to measure executions time
+    auto stop = high_resolution_clock::now();
+
+    // Display execution time
+    auto duration = duration_cast<microseconds>(stop - start);
+    cout << "CPU execution time = " << duration.count() << " microseconds" <<endl;
+
+    return 0;
+}
