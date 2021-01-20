@@ -172,14 +172,14 @@ public:
             
             //Declare the current node that will be processed by the GPU
             cudaMalloc( (void**)&dev_n, sizeof(node) )
-            cudaMemcpy( dev_n, n, sizeof(point), cudaMemcpyHostToDevice );
+            cudaMemcpy( dev_n, n, sizeof(node), cudaMemcpyHostToDevice );
 
             //Declare the bool result in the GPU that is needed for our stop condition
             cudaMalloc( (void**)&dev_found, sizeof(bool) )
 
             fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, list<node> dev_open )
 
-            cudaMemcpy( host_found, dev_found, sizeof(point), cudaMemcpyDeviceToHost );
+            cudaMemcpy( host_found, dev_found, sizeof(bool), cudaMemcpyDeviceToHost );
             if( *host_found ){
                 //Free GPU's memory
                 cudaFree(dev_bool);
