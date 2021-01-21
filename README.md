@@ -52,9 +52,16 @@ Configuration has to be made before compiling the software. Parameters correspon
 
 Once you set your parameters, you can then compile an run the sofware as shown earlier in this README.
 
-### b) GPU version of the *A\** algorithm
+### b) GPU version of the *A\** algorithm (not working)
 
+Even though some software engineers thought tried to implement GPU versions of the *A\** algorithm, the way the algorithm works makes the parallelisation of tasks almost impossible. It was designed to run sequentially as it needs all the previous information about the already covered node to make comparisons. Both *open* or *closed* lists are constantly consulted and modified. If we parallelize the research, thread will not be aware of other threads information and redundancy search will be made. Simultaneous access to the *open* or *closed* lists also represents a big issue.
 
+From our point of view, the only operations that could be parallelized were the exploration of the direct neighbours of a specific nodes, that is to say 8 operations for each node. Because the problems mentionned above, onlu one node can be processed at the same time.
+Unfortunatly, we did not manage to make the code compile as the algorithm used a specific class called *lists* which can not be manipulated using the GPU. However, we wrote the code as it should be if lists were allowed.
+
+In order to implement our solution, we had to manage two different GPU types of variables in terms of memory behaviour. Some variables were static as their value does not change during the whole algorithm, and some variables were dynamic as their size and values were constantly changing during the execution.
+
+[./Picture/static_varaibles.png](./CPU_Final/rosettaA_star.cpp)
 
 ## Further information:
 
