@@ -23,6 +23,38 @@ cd ./Test_GPU
 nvcc -o rosettaA_star rosettaA_star.cpp
 ./rosrosettaA_star
 ```
+## I - Introduction
+
+In this repository we tried to implemented 2 version of the *A\** algorithm: one version optimized to run only on a CPU, and one version created to parallelize computations using an additional GPU.
+
+### Explanation of the *A\** algorithm
+
+In computer science, more precisely in artificial intelligence, the *A\** search algorithm is an algorithm for finding a path in a graph between a given initial node and an end node.
+It is close to the Djikstra algorithm in its operation but unlike it, not all the points are covered.
+
+#### Pseudo-algorithm
+
+The basic structures that are manipulated for this algorithm are nodes. They are composed of 3 attributes: the actual position, a cost of the path to reach this position, and an estimation or an underestimation of the remaining cost to the final position.
+We basically use two nodes lists called *open* and *closed* in order to carry out the path finding. The *open* list corresponds to the nodes that were explorated but not their neighbours and the *closed* list corresponds to the nodes that were covered as well as their neighbours. At the beginning of the algorithm we fill the *open* list with the initial position and then start to explore the neighbours. When a neighbour is not covered or when it presents a better heuristic than another node leading to the same position in the *open* or *closed* lists, we delete it in the list and add the new node in both lists. The new node represents the same position but was reached following a cheaper path regarding the cost.
+The algorithm ends when the *open* list is empty, all the information regarding the cheaper path can be then found in the *closed* list.
+
+*NB: the heuristic is the sum of the cost to reach this position and the remaining estimation to the final position. It is used to determine the best nodes to follow in order to minimize the cost of the path to reach the end*
+
+## II - CPU and GPU implementation written in C++
+
+### a) CPU version of the *A\** algorithm
+
+We started from a C++ implementation we found on [rosettacode.org](https://rosettacode.org/wiki/A*_search_algorithm) and modified it in order to fit our needs.
+
+We modified the sofware in order to be able to set any size of map, to be able to choose the percentage of hurdles in the map as well as the start point and the end point.
+
+Configuration has to be made before compiling the software. Parameters corresponds to the different **#define** you can find at the beginning of the [main file](./CPU_Final/rosettaA_star.cpp).
+
+Once you set your parameters, you can then compile an run the sofware as shown earlier in this README.
+
+### b) GPU version of the *A\** algorithm
+
+
 
 ## Further information:
 

@@ -20,24 +20,6 @@ using namespace std::chrono;
 #define y_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
 #define x_end 3                     //min= 0, max = SQUARE_SIDE_SIZE-1
 #define y_end 8                     //min= 0, max = SQUARE_SIDE_SIZE-1
- 
-
-template <typename T>
-struct KernelArray
-{
-    T*  _array;
-    int _size;
-};
-
-template <typename T>
-KernelArray<T> convertToKernel(thrust::device_vector<T>& dVec)
-{
-    KernelArray<T> kArray;
-    kArray._array = thrust::raw_pointer_cast(&dVec[0]);
-    kArray._size  = (int) dVec.size();
-
-    return kArray;
-}
 
 class point {
 public:
@@ -81,6 +63,8 @@ public:
 };
 
 //Fonction called from the GPU and executed by the GPU
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
 __device__
 bool isValid( point& p ) {
     return ( p.x >-1 && p.y > -1 && p.x < SQUARE_SIDE_SIZE && p.y < SQUARE_SIDE_SIZE );
@@ -97,12 +81,12 @@ int dev_calcDist( point& p, point& dev_end){
  __device__
  bool existPoint( point& p, int cost, list<node> dev_closed, list<node> dev_open) {
     list<node>::iterator i;
-    i = find( dev_closed.begin(), dev_closed.end(), p );
+    i = thrust::find( dev_closed.begin(), dev_closed.end(), p );
     if( i != dev_closed.end() ) {
         if( ( *i ).cost + ( *i ).dist < cost ) return true;
         else { dev_closed.erase( i ); return false; }
     }
-    i = find( dev_open.begin(), dev_open.end(), p );
+    i = thrust::find( dev_open.begin(), dev_open.end(), p );
     if( i != dev_open.end() ) {
         if( ( *i ).cost + ( *i ).dist < cost ) return true;
         else { dev_open.erase( i ); return false; }
@@ -128,30 +112,30 @@ public:
     }
 
     __global__
-    void fillOpen(node* n, point* dev_neighbours, map* dev_map, bool* found, thrust::device_vector<node> dev_open, thrust::device_vector<node> dev_close) {
+    void fillOpen(node* dev_n, point* dev_neighbours, int* dev_map, bool* dev_found, list<node> dev_open, list<node> dev_closed) {
         int stepCost, nc, dist;
         point neighbour;
 
-        int i = threadIdx.x + blockIdx.x * blockDIm.x;
+        int i = threadIdx.x + blockIdx.x * blockDim.x;
 
         //We investigate all neighbours
         // one can make diagonals have different cost
         stepCost = i < 4 ? 1 : 1; //The variable neigbours has the direct neighbours from index 0 to 3 and the diagonal neighbours from index 4 to 7
-        neighbour = n.pos + dev_neighbours[i]; //The variable neighbours contains the relative moves from the current position to find the neighbours
-        if( neighbour == end ) found = true;
+        neighbour = dev_n->pos + dev_neighbours[i]; //The variable neighbours contains the relative moves from the current position to find the neighbours
+        if( neighbour == end ) *dev_found = true;
 
-        if( isValid( neighbour ) && dev_map( neighbour.x, neighbour.y ) != 1 ) { //Here we inspect the new position if the position is in the map and the position isn't a wall
-            nc = stepCost + n.cost;
+        if( isValid( neighbour ) && dev_map[neighbour.x, neighbour.y] != 1 ) { //Here we inspect the new position if the position is in the map and the position isn't a wall
+            nc = stepCost + dev_n->cost;
             dist = calcDist( neighbour );
             if( !existPoint( neighbour, nc + dist , dev_open, dev_closed) ) { //If we don't have any path to the same point in open or closed where the cost is cheaper, we create a new node in open
                 node m;
                 m.cost = nc; m.dist = dist;
                 m.pos = neighbour; 
-                m.parent = n.pos;
+                m.parent = dev_n->pos;
                 dev_open.push_back( m );
                 }
         }
-        found = false;
+        *dev_found = false;
     }
  
     /*
@@ -170,16 +154,15 @@ public:
         bool* host_found;
         bool* dev_found;
 
+        list<node>* dev_open;
+        list<node>* dev_closed;
 
-
-
-
-        cudaMalloc( (void**)&dev_neighbours, 8*sizeof(point) ) //Declare the neighbours variable for the GPU
-        cudaMalloc( (void**)&dev_end, sizeof(point) ) //Declare the end point for the GPU
-        cudaMalloc( (void**)&dev_map, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(point) ) //Declare the end point for the GPU
+        cudaMalloc( (void**)&dev_neighbours, 8*sizeof(point) ); //Declare the neighbours variable for the GPU
+        cudaMalloc( (void**)&dev_end, sizeof(point) ); //Declare the end point for the GPU
+        cudaMalloc( (void**)&dev_map, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(point) ); //Declare the end point for the GPU
 
         //Copy values in the GPU's memory
-        cudaMemcpy( dev_end, e, sizeof(point), cudaMemcpyHostToDevice );
+        cudaMemcpy( dev_end, &e, sizeof(point), cudaMemcpyHostToDevice );
         cudaMemcpy( dev_neighbours, neighbours, 8*sizeof(point), cudaMemcpyHostToDevice );
         cudaMemcpy( dev_map, mp.m, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(int), cudaMemcpyHostToDevice );
 
@@ -193,28 +176,32 @@ public:
             closed.push_back( n ); //So we fill the node in closed to keep it in memory
             
             //Declare the current node that will be processed by the GPU
-            cudaMalloc( (void**)&dev_n, sizeof(node) )
-            cudaMemcpy( dev_n, n, sizeof(node), cudaMemcpyHostToDevice );
+            cudaMalloc( (void**)&dev_n, sizeof(node) );
+            cudaMemcpy( dev_n, &n, sizeof(node), cudaMemcpyHostToDevice );
 
             //Declare the bool result in the GPU that is needed for our stop condition
-            cudaMalloc( (void**)&dev_found, sizeof(bool) )
+            cudaMalloc( (void**)&dev_found, sizeof(bool) );
 
-            //create device vector 
-            thrust::device_vector<node> dev_open(open.begin(), open.end());
-            thrust::device_vector<node> dev_close(open.begin(), open.end());
+            //Create device open and close list
+            cudaMalloc( (void**)&dev_open, open.size()*sizeof(node) );
+            cudaMalloc( (void**)&dev_closed, closed.size()*sizeof(node) );
+            cudaMemcpy( dev_open, open, open.size()*sizeof(node), cudaMemcpyHostToDevice );
+            cudaMemcpy( dev_closed, closed, closed.size()*sizeof(node), cudaMemcpyHostToDevice );
 
-            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, dev_open, dev_close)
+            fillOpen<<<1,8>>>( dev_n, dev_neighbours, dev_map, dev_found, dev_open, dev_closed);
             
-            //free the device vector
-            dev_open.clear();
-            device_vector<T>().swap(dev_open);
-            dev_close.clear();
-            device_vector<T>().swap(dev_close);
-        
+            //We update CPU's open and closed lists using the one that were modified by the kernel
+            cudaMemcpy( open, dev_open, dev_open.size()*sizeof(node), cudaMemcpyDeviceToHost );
+            cudaMemcpy( closed, dev_closed, dev_closed.size()*sizeof(node), cudaMemcpyDeviceToHost );
+            
+            //We free GPU's open and closed lists
+            cudaFree(dev_open);
+            cudaFree(dev_closed);
+
             cudaMemcpy( host_found, dev_found, sizeof(bool), cudaMemcpyDeviceToHost );
             if( *host_found ){
                 //Free GPU's memory
-                cudaFree(dev_bool);
+                cudaFree(dev_found);
                 cudaFree(dev_n);
                 cudaFree(dev_end);
                 cudaFree(dev_neighbours);
@@ -222,10 +209,9 @@ public:
                 return true;
              }
              cudaFree(dev_n);
-             cudaFree(dev_bool);
+             cudaFree(dev_found);
         }
         //Free GPU's memory
-        cudaFree(dev_bool);
         cudaFree(dev_end);
         cudaFree(dev_neighbours);
         cudaFree(dev_map);
