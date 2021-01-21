@@ -61,7 +61,7 @@ Unfortunatly, we did not manage to make the code compile as the algorithm used a
 
 In order to implement our solution, we had to manage two different GPU types of variables in terms of memory behaviour. Some variables were static as their value does not change during the whole algorithm, and some variables were dynamic as their size and values were constantly changing during the execution.
 
-![hey](./Picture/static_varaibles.png)
+![hey](./Pictures/static_varaibles.png)
 
 ## Further information:
 
