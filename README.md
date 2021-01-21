@@ -38,7 +38,7 @@ The basic structures that are manipulated for this algorithm are nodes. They are
 We basically use two nodes lists called *open* and *closed* in order to carry out the path finding. The *open* list corresponds to the nodes that were explorated but not their neighbours and the *closed* list corresponds to the nodes that were covered as well as their neighbours. At the beginning of the algorithm we fill the *open* list with the initial position and then start to explore the neighbours. When a neighbour is not covered or when it presents a better heuristic than another node leading to the same position in the *open* or *closed* lists, we delete it in the list and add the new node in both lists. The new node represents the same position but was reached following a cheaper path regarding the cost.
 The algorithm ends when the *open* list is empty, all the information regarding the cheaper path can then be found in the *closed* list.
 
-*NB: the heuristic is the sum of the cost to reach this position and the remaining estimation to the final position. It is used to determine the best nodes to follow in order to minimize the cost of the path to reach the end*
+*NB: the heuristic is the sum of the cost to reach this position and the remaining estimation to the final position. It is used to determine the best nodes to follow in order to minimize the cost of the path to reach the end position.*
 
 ## II - CPU and GPU implementation written in C++
 
@@ -61,7 +61,7 @@ Unfortunatly, we did not manage to make the code compile as the algorithm used a
 
 In order to implement our solution, we had to manage two different GPU types of variables in terms of memory behaviour. Some variables were static as their value does not change during the whole algorithm, and some variables were dynamic as their size and values were constantly changing during the execution.
 
-![](./Picture/static_varaibles.png)
+![hey](./Picture/static_varaibles.png)
 
 ## Further information:
 
