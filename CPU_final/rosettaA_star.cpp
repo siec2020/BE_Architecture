@@ -4,20 +4,15 @@
 #include <cstdlib>
 #include <chrono>
 
-<<<<<<< HEAD
-#define SQUARE_SIDE_SIZE 100
-#define WALL_PERCENTAGE 0.1
-=======
 using namespace std; 
 using namespace std::chrono;
 
-#define SQUARE_SIDE_SIZE 8
+#define SQUARE_SIDE_SIZE 1000
 #define WALL_PERCENTAGE 0.2         //To avoid no solution, max = 0.4
 #define x_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
 #define y_start 0                   //min= 0, max = SQUARE_SIDE_SIZE-1
 #define x_end 3                     //min= 0, max = SQUARE_SIDE_SIZE-1
 #define y_end 8                     //min= 0, max = SQUARE_SIDE_SIZE-1
->>>>>>> e95e498070a247c0e3fb6948c3e4b6821df64ddf
  
 class point {
 public:
@@ -30,15 +25,6 @@ public:
 class map {
 public:
     map() {
-<<<<<<< HEAD
-        int current_random_value;
-
-        w = h = SQUARE_SIDE_SIZE;
-        for( int r = 0; r < h; r++ )
-            for( int s = 0; s < w; s++ )
-                current_random_value = std::rand()/RAND_MAX;
-                m[s][r] = current_random_value < WALL_PERCENTAGE ? 1 : 0;
-=======
         float current_random_value;
 
         w = h = SQUARE_SIDE_SIZE;
@@ -53,7 +39,6 @@ public:
                 // cout << "m[" << s << "][" << r <<"] = " << m[s][r] << endl;
             }
             // cout << endl;
->>>>>>> e95e498070a247c0e3fb6948c3e4b6821df64ddf
     }
 
     int operator() ( int x, int y ) { return m[x][y]; }
@@ -177,7 +162,7 @@ public:
  
 int main( int argc, char* argv[] ) {
     map m;
-    point s, e(x_end,y_end); //s is the start e is the end
+    point s(x_start,y_start), e(x_end,y_end); //s is the start e is the end
     aStar as;
 
     //Start point to measure executions time
@@ -187,15 +172,9 @@ int main( int argc, char* argv[] ) {
         list<point> path;
         int c = as.path( path );
         for( int y = -1; y < SQUARE_SIDE_SIZE+1; y++ ) {
-<<<<<<< HEAD
-            for( int x = -1; x < 9; x++ ) {
-                if( x < 0 || y < 0 || x > SQUARE_SIDE_SIZE || y > SQUARE_SIDE_SIZE || m( x, y ) == 1 )
-                    std::cout << char(0xdb);
-=======
             for( int x = -1; x < SQUARE_SIDE_SIZE+1; x++ ) {
                 if( x < 0 || y < 0 || x > SQUARE_SIDE_SIZE-1 || y > SQUARE_SIDE_SIZE-1 || m( x, y ) == 1 )
                     cout << "w";
->>>>>>> e95e498070a247c0e3fb6948c3e4b6821df64ddf
                 else {
                     if( find( path.begin(), path.end(), point( x, y ) )!= path.end() )
                         cout << "x";
