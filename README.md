@@ -13,19 +13,19 @@
 
 * **_CPU_Final/rosettaA_star.cpp file:_** from this folder
 ```
-cd ./Test_CPU
+cd /Test_CPU
 g++ -o rosettaA_star rosettaA_star.cpp
 ./rosrosettaA_star
 ```
 * **_GPU_Final/rosettaA_star.cu file:_** from this folder
 ```
-cd ./Test_GPU
+cd /Test_GPU
 nvcc -o rosettaA_star rosettaA_star.cpp
 ./rosrosettaA_star
 ```
 ## I - Introduction
 
-In this repository we tried to implemented 2 version of the *A\** algorithm: one version optimized to run only on a CPU, and one version created to parallelize computations using an additional GPU.
+In this repository we tried to implement 2 version of the *A\** algorithm: one version optimized to run only on a CPU, and one version created to parallelize computations using an additional GPU.
 
 ### Explanation of the *A\** algorithm
 
@@ -34,7 +34,7 @@ It is close to the Djikstra algorithm in its operation but unlike it, not all th
 
 #### Pseudo-algorithm
 
-The basic structures that are manipulated for this algorithm are nodes. They are composed of 3 attributes: the actual position, a cost of the path to reach this position, and an estimation or an underestimation of the remaining cost to the final position.
+The basic structures that are manipulated for this algorithm are nodes. They are composed of 3 attributes: the actual position, a cost of the path to reach this position, the parent node and an estimation or an underestimation of the remaining cost to the final position.
 We basically use two nodes lists called *open* and *closed* in order to carry out the path finding. The *open* list corresponds to the nodes that were explorated but not their neighbours and the *closed* list corresponds to the nodes that were covered as well as their neighbours. At the beginning of the algorithm we fill the *open* list with the initial position and then start to explore the neighbours. When a neighbour is not covered or when it presents a better heuristic than another node leading to the same position in the *open* or *closed* lists, we delete it in the list and add the new node in both lists. The new node represents the same position but was reached following a cheaper path regarding the cost.
 The algorithm ends when the *open* list is empty, all the information regarding the cheaper path can then be found in the *closed* list.
 
@@ -54,7 +54,7 @@ Once you set your parameters, you can then compile an run the sofware as shown e
 
 ### b) GPU version of the *A\** algorithm (not working)
 
-Even though some software engineers thought tried to implement GPU versions of the *A\** algorithm, the way the algorithm works makes the parallelisation of tasks almost impossible. It was designed to run sequentially as it needs all the previous information about the already covered node to make comparisons. Both *open* or *closed* lists are constantly consulted and modified. If we parallelize the research, thread will not be aware of other threads information and redundancy search will be made. Simultaneous access to the *open* or *closed* lists also represents a big issue.
+Even though some software engineers tried to implement GPU versions of the *A\** algorithm, the way the algorithm works makes the parallelisation of tasks almost impossible. It was designed to run sequentially as it needs all the previous information about the already covered node to make comparisons. Both *open* or *closed* lists are constantly consulted and modified. If we parallelize the research, thread will not be aware of other threads information and redundancy search will be made. Simultaneous access to the *open* or *closed* lists also represents a big issue.
 
 From our point of view, the only operations that could be parallelized were the exploration of the direct neighbours of a specific nodes, that is to say 8 operations for each node. Because the problems mentionned above, onlu one node can be processed at the same time.
 Unfortunatly, we did not manage to make the code compile as the algorithm used a specific class called *list* which can not be manipulated using the GPU. However, we wrote the code as it should be if lists were allowed.
