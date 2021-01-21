@@ -161,6 +161,12 @@ public:
         cudaMalloc( (void**)&dev_end, sizeof(point) ); //Declare the end point for the GPU
         cudaMalloc( (void**)&dev_map, SQUARE_SIDE_SIZE*SQUARE_SIDE_SIZE*sizeof(point) ); //Declare the end point for the GPU
 
+        //Declare the current node that will be processed by the GPU
+        cudaMalloc( (void**)&dev_n, sizeof(node) );
+
+        //Declare the bool result in the GPU that is needed for our stop condition
+        cudaMalloc( (void**)&dev_found, sizeof(bool) )
+
         //Copy values in the GPU's memory
         cudaMemcpy( dev_end, &e, sizeof(point), cudaMemcpyHostToDevice );
         cudaMemcpy( dev_neighbours, neighbours, 8*sizeof(point), cudaMemcpyHostToDevice );
@@ -175,12 +181,8 @@ public:
             open.pop_front(); //As we investigated the node, we can consider it closed (i.e. investigated)
             closed.push_back( n ); //So we fill the node in closed to keep it in memory
             
-            //Declare the current node that will be processed by the GPU
-            cudaMalloc( (void**)&dev_n, sizeof(node) );
+            //We update the value of the current node in the GPU's memory
             cudaMemcpy( dev_n, &n, sizeof(node), cudaMemcpyHostToDevice );
-
-            //Declare the bool result in the GPU that is needed for our stop condition
-            cudaMalloc( (void**)&dev_found, sizeof(bool) );
 
             //Create device open and close list
             cudaMalloc( (void**)&dev_open, open.size()*sizeof(node) );
@@ -208,10 +210,10 @@ public:
                 cudaFree(dev_map);
                 return true;
              }
-             cudaFree(dev_n);
-             cudaFree(dev_found);
         }
         //Free GPU's memory
+        cudaFree(dev_n);
+        cudaFree(dev_found);
         cudaFree(dev_end);
         cudaFree(dev_neighbours);
         cudaFree(dev_map);

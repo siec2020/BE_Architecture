@@ -57,12 +57,42 @@ Once you set your parameters, you can then compile an run the sofware as shown e
 Even though some software engineers thought tried to implement GPU versions of the *A\** algorithm, the way the algorithm works makes the parallelisation of tasks almost impossible. It was designed to run sequentially as it needs all the previous information about the already covered node to make comparisons. Both *open* or *closed* lists are constantly consulted and modified. If we parallelize the research, thread will not be aware of other threads information and redundancy search will be made. Simultaneous access to the *open* or *closed* lists also represents a big issue.
 
 From our point of view, the only operations that could be parallelized were the exploration of the direct neighbours of a specific nodes, that is to say 8 operations for each node. Because the problems mentionned above, onlu one node can be processed at the same time.
-Unfortunatly, we did not manage to make the code compile as the algorithm used a specific class called *lists* which can not be manipulated using the GPU. However, we wrote the code as it should be if lists were allowed.
+Unfortunatly, we did not manage to make the code compile as the algorithm used a specific class called *list* which can not be manipulated using the GPU. However, we wrote the code as it should be if lists were allowed.
 
-In order to implement our solution, we had to manage two different GPU types of variables in terms of memory behaviour. Some variables were static as their value does not change during the whole algorithm, and some variables were dynamic as their size and values were constantly changing during the execution.
+In order to implement our solution, we had to manage two different GPU types of variables in terms of memory behaviour. Some variables were static as their value does not change during the whole algorithm, and some variables were dynamic as their size and values were constantly changing during the execution. The picture below show the GPU's memory allocations for the static variables which are the end position, the map and the relative positions of the neighbours from any node:
 
-![hey](./Pictures/static_variables.PNG)
+![](./Pictures/static_variables.PNG)
 
-## Further information:
+Regarding the dynamic variables, the memory could not be allocated outside the *while* loop as they have to be freed dynamically and reallocated each time they are modified. The picture below shows the allocation for the dynamic variables which are basically both *open* or *closed* lists, the current tested node, and the *bool* result of the research:
 
-In each final version, execution time is measured. We can then compare the efficieny of the CPU version versus the GPU version.
+![](./Pictures/dynamic_variables.PNG)
+
+
+*NB: as the* **dev_n** *and the* **dev_bool** *varibles always require the same amount of GPU memory, their allowations were made outside the* **while** *loop but their affectations within it.*
+
+In a second time, we call our kernal to parallelize the tests of the 8 direct neighbours:
+
+![](./Pictures/kernel.PNG)
+
+When all neighbours have been tested, CPU's *open* or *closed* lists are updated with the results of the kernel and GPU's memory for both *open* or *closed* lists is freed:
+
+![](./Pictures/update.PNG)
+
+Finally, when the search function ends, we free all the remaining GPU memory even if we did not find a path from the initial position to the desired position.
+
+![](./Pictures/end.PNG)
+
+## III - CPU's performances
+
+As we wanted to compare performances of both version of the *A\** algorithm, we measured the execution tim of the CPU's version. We obviously did not do the same for the GPU's version as it does not work.
+
+We measured the execution time for different sizes of map but using the same wall percentage which was 20%:
+| **Size of the square map** | **Execution time** |
+|:--------------------------:|--------------------|
+| 10                         | 1165 us            |
+| 100                        | 9422 us            |
+| 1 000                      | 234274 us          |
+
+## Conclusion
+
+Trying to use GPU's architecture to accelerate the execution of the original sequential algorithm, we found out that the *A\** algorothm was not designed to allow parallelization. The way th algorithm works make it fully sequential even though some software engineers manage to release GPU versions of the algorithm. In order to parallelize the algorithm they had to modify the algorithm's behaviour as it requires all the past information of the research that you cannot have been shared between *threads* running simulatneously. Therefore, they had to developp mechanism to avoid redundancy in the research which were far beyond our capacities regarding the few hours we had to work on this project. One other big issue we coped with was that not all standard classes can be use with the GPU. As an example, *lists* are not handles by the GPU wich make it very painfull to manipulate dynamic lists. However I think we understood the advantages of using a GPU for other kinds of computation and the way to write appropriate software to do so. If the number of hours is not to be increased for the next years, maybe remove the *A\** algorithm from the list.
