@@ -48,7 +48,7 @@ We started from a C++ implementation we found on [rosettacode.org](https://roset
 
 We modified the sofware in order to be able to set any size of map, to be able to choose the percentage of hurdles in the map as well as the start point and the end point.
 
-Configuration has to be made before compiling the software. Parameters corresponds to the different **#define** you can find at the beginning of the [main file](./CPU_Final/rosettaA_star.cpp).
+Configuration has to be made before compiling the software. Parameters corresponds to the different **#define** you can find at the beginning of the [main file](./CPU_final/rosettaA_star.cpp).
 
 Once you set your parameters, you can then compile an run the sofware as shown earlier in this README.
 
